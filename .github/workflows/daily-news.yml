@@ -10,8 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Search & Push Fuel Cell Report
+      - name: AI Analysis & Feishu Push
         env:
           FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: python push_news.py
