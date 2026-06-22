@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 燃料电池汽车产业情报日报
-基于 Google News RSS（免费，无需 API Key）
-全球搜索 → 自动分类 → 信源标注 → 飞书推送
+Google News RSS 全球搜索 → GPT-4o-mini AI 分析总结 → 飞书推送
+完全免费：GitHub Models (GPT-4o-mini) + Google News RSS
 """
 
 import json, os, urllib.request, urllib.parse
@@ -12,272 +12,204 @@ import hmac, hashlib, base64, time as time_module
 from datetime import datetime, timedelta
 
 # ── 配置 ────────────────────────────────────────────
-WEBHOOK_URL   = os.environ["FEISHU_WEBHOOK_URL"]
-FEISHU_SECRET = os.environ["FEISHU_SECRET"]
+WEBHOOK_URL    = os.environ["FEISHU_WEBHOOK_URL"]
+FEISHU_SECRET  = os.environ["FEISHU_SECRET"]
+GITHUB_TOKEN   = os.environ.get("GITHUB_TOKEN", "")
+AI_MODEL       = "gpt-4o-mini"
+AI_ENDPOINT    = "https://models.inference.ai.azure.com/chat/completions"
 
-# 搜索查询 — 英文全球 + 中文国内
 QUERIES = [
-    ("燃料電気自動車+水素+政策+補助金",     "ja-JP",  "JP"),   # 日本
-    ("fuel+cell+vehicle+policy+hydrogen",    "en-US",  "US"),   # 全球英文
-    ("hydrogen+fuel+cell+FCEV+regulation",   "en-GB",  "GB"),   # 欧洲视角
-    ("Brennstoffzelle+Fahrzeug+Politik",     "de-DE",  "DE"),   # 德国（欧洲氢能中心）
-    ("pila+combustible+vehículo+hidrógeno",  "es-ES",  "ES"),   # 西班牙/拉美
-    ("pile+combustible+véhicule+hydrogène",  "fr-FR",  "FR"),   # 法国
+    ("fuel cell vehicle policy hydrogen regulation subsidy 2026", "en-US", "US"),
+    ("hydrogen fuel cell FCEV industry government strategy",        "en-GB", "GB"),
+    ("Brennstoffzelle Wasserstoff Fahrzeug Politik Deutschland EU", "de-DE", "DE"),
+    ("pile combustible hydrogène véhicule politique France",        "fr-FR", "FR"),
+    ("燃料電気自動車 水素 政策 トヨタ ホンダ 日本",                  "ja-JP", "JP"),
 ]
 CN_QUERIES = [
-    ("燃料电池汽车+政策+氢能+产业+补贴",          "zh-CN", "CN"),
-    ("氢能+燃料电池+示范城市群+政策",              "zh-CN", "CN"),
+    ("燃料电池汽车 政策 氢能 产业 补贴 2026",     "zh-CN", "CN"),
+    ("氢能 燃料电池 示范城市群 政策 国家规划",     "zh-CN", "CN"),
 ]
 
-MAX_RESULTS = 12
+MAX_SEARCH = 30  # 原始搜索结果上限
 # ────────────────────────────────────────────────────
 
 
 def search_google_news(query, hl, gl, max_results=50):
-    """免费 Google News RSS 搜索"""
-    ceid_map = {
-        "CN": "CN:zh-Hans", "US": "US:en", "GB": "GB:en",
-        "JP": "JP:ja", "DE": "DE:de", "FR": "FR:fr", "ES": "ES:es",
-    }
+    ceid_map = {"CN":"CN:zh-Hans","US":"US:en","GB":"GB:en","JP":"JP:ja","DE":"DE:de","FR":"FR:fr","ES":"ES:es"}
     ceid = ceid_map.get(gl, f"{gl}:{hl.split('-')[0]}")
-    rss_url = (
-        f"https://news.google.com/rss/search?"
-        f"q={urllib.parse.quote(query)}&hl={hl}&gl={gl}&ceid={ceid}"
-    )
+    rss_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl={hl}&gl={gl}&ceid={ceid}"
     req = urllib.request.Request(rss_url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=20) as resp:
         xml_data = resp.read().decode("utf-8")
-
     root = ET.fromstring(xml_data)
     results = []
     for item in root.findall(".//item"):
-        title_el = item.find("title")
-        link_el = item.find("link")
-        source_el = item.find("source")
-        pubdate_el = item.find("pubDate")
-
-        title = title_el.text if title_el is not None else ""
-        link = link_el.text if link_el is not None else ""
-        source = source_el.text if source_el is not None else "Unknown"
+        title_el, link_el, source_el, pubdate_el = item.find("title"), item.find("link"), item.find("source"), item.find("pubDate")
+        title = title_el.text.strip() if title_el is not None and title_el.text else ""
+        link  = link_el.text if link_el is not None else ""
+        source = source_el.text.strip() if source_el is not None and source_el.text else "Unknown"
         pubdate = pubdate_el.text if pubdate_el is not None else ""
-
-        # 过滤无用内容
-        skip_words = ["stock", "share price", "股", "advertisement", "sponsored"]
-        if any(w in title.lower() for w in skip_words):
+        skip = ["stock", "share price", "股", "advertisement", "sponsored", "click here"]
+        if not title or any(w in title.lower() for w in skip):
             continue
-
-        results.append({
-            "title": title.strip(),
-            "url": link,
-            "source": source.strip(),
-            "date": pubdate,
-            "region": gl,
-        })
-        if len(results) >= max_results:
-            break
+        results.append({"title":title,"url":link,"source":source,"date":pubdate,"region":gl})
+        if len(results)>=max_results: break
     return results
 
 
 def search_all():
-    """执行全部查询并合并去重"""
-    seen = set()
-    all_results = []
-
+    seen = set(); all_results = []
     for query, hl, gl in QUERIES + CN_QUERIES:
         try:
             results = search_google_news(query, hl, gl)
-            print(f"  [{gl}] {query[:40]}... → {len(results)} results")
+            print(f"  [{gl}] {query[:35]}... -> {len(results)} results")
             for r in results:
-                key = r["title"][:80]  # 用标题去重
+                key = r["title"][:80]
                 if key not in seen:
-                    seen.add(key)
-                    all_results.append(r)
+                    seen.add(key); all_results.append(r)
         except Exception as e:
-            print(f"  [WARN] {gl} failed: {e}")
-
-    # 按日期排序（新的在前）
-    def parse_date(r):
-        try:
-            return datetime.strptime(r["date"], "%a, %d %b %Y %H:%M:%S %Z")
-        except Exception:
-            return datetime.min
-    all_results.sort(key=parse_date, reverse=True)
-
-    return all_results[:MAX_RESULTS]
+            print(f"  [WARN] {gl}: {e}")
+    def pd(r):
+        try: return datetime.strptime(r["date"], "%a, %d %b %Y %H:%M:%S %Z")
+        except: return datetime.min
+    all_results.sort(key=pd, reverse=True)
+    return all_results[:MAX_SEARCH]
 
 
-def classify(results):
-    """自动分类"""
-    categories = {
-        "政策法规": [],
-        "产业动态": [],
-        "技术创新": [],
-        "市场投资": [],
-        "国际合作": [],
+def ai_analyze(articles):
+    """用 GPT-4o-mini 对新闻进行综合分析总结"""
+    # 构建新闻摘要
+    articles_text = ""
+    for i, a in enumerate(articles):
+        flag = {"CN":"[中]","US":"[美]","GB":"[英]","JP":"[日]","DE":"[德]","FR":"[法]","ES":"[西]"}.get(a["region"],"[?]")
+        articles_text += f"\n{i+1}. {flag} {a['title']} (来源: {a['source']})"
+
+    prompt = f"""你是燃料电池汽车产业分析师。以下是今日全球最新相关新闻（{len(articles)}条）。请做综合分析：
+
+{articles_text}
+
+请生成一份结构化的产业情报分析报告，用中文输出，包括：
+
+## 一、📊 今日核心要闻
+（选3-5条最重要的，每条约50字概括要点）
+
+## 二、🔍 政策与监管动态
+（各国最新政策变化、法规更新、补贴调整等，归纳分析）
+
+## 三、🏭 产业与技术趋势
+（技术突破、量产进展、产业链变化等）
+
+## 四、💡 综合研判
+（100字以内，对行业趋势的简要判断）
+
+格式要求：Markdown，简洁专业，每条分析不超过80字。"""
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GITHUB_TOKEN}"
     }
-
-    policy_kw = ["policy", "regulation", "subsidy", "incentive", "government",
-                 "ban", "mandate", "law", "bill", "standard", "target",
-                 "政策", "补贴", "法规", "标准", "政府", "国家", "目标", "规划", "示范"]
-    tech_kw = ["technology", "breakthrough", "stack", "membrane", "catalyst",
-               "efficiency", "durability", "performance",
-               "技术", "突破", "效率", "催化剂", "膜", "电堆", "续航"]
-    market_kw = ["investment", "funding", "market", "IPO", "stock", "acquisition",
-                 "partnership", "revenue", "sales", "deployment",
-                 "投资", "融资", "市场", "上市", "销售", "交付", "量产"]
-    intl_kw = ["EU", "Europe", "China", "Japan", "Korea", "Germany", "US", "California",
-               "agreement", "cooperation", "trade",
-               "欧盟", "日本", "韩国", "德国", "美国", "合作", "国际", "全球"]
-
-    for r in results:
-        text = (r["title"] + " " + r["source"]).lower()
-        if any(kw.lower() in text for kw in policy_kw):
-            categories["政策法规"].append(r)
-        elif any(kw.lower() in text for kw in intl_kw):
-            categories["国际合作"].append(r)
-        elif any(kw.lower() in text for kw in tech_kw):
-            categories["技术创新"].append(r)
-        elif any(kw.lower() in text for kw in market_kw):
-            categories["市场投资"].append(r)
-        else:
-            categories["产业动态"].append(r)
-
-    return {k: v for k, v in categories.items() if v}
+    payload = {
+        "model": AI_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1500,
+        "temperature": 0.3,
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(AI_ENDPOINT, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        result = json.loads(resp.read().decode())
+    return result["choices"][0]["message"]["content"]
 
 
-def generate_report(categories):
-    """生成精简 Markdown 报告（适配飞书卡片 5000 字符限制）"""
+def build_card(ai_report, articles, total_chars):
+    """构建飞书卡片：AI 分析 + 信源列表"""
     today = datetime.now().strftime("%Y-%m-%d")
-    total = sum(len(v) for v in categories.values())
 
-    lines = [
-        "## 🔋 燃料电池汽车产业情报日报",
-        "",
-        f"📅 {today}  |  📰 {total} 条  |  🌍 全球信源",
-        "",
-    ]
+    # AI 分析部分（控制在 3500 字符）
+    ai_text = ai_report[:3500]
+    if len(ai_report) > 3500:
+        ai_text += "\n\n> ⚠️ 分析过长已截断"
 
-    region_flags = {
-        "CN": "🇨🇳", "US": "🇺🇸", "GB": "🇬🇧", "JP": "🇯🇵",
-        "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸",
-    }
+    # 信源部分（控制在 1200 字符）
+    sources = [f"\n**📎 今日信源（{len(articles)}条）**\n"]
+    region_flags = {"CN":"🇨🇳","US":"🇺🇸","GB":"🇬🇧","JP":"🇯🇵","DE":"🇩🇪","FR":"🇫🇷","ES":"🇪🇸"}
+    for i, a in enumerate(articles[:15], 1):
+        flag = region_flags.get(a["region"], "")
+        title = a["title"][:50] + "..." if len(a["title"])>50 else a["title"]
+        sources.append(f"{i}. {flag} [{title}]({a['url']}) — {a['source']}")
 
-    priority = ["政策法规", "国际合作", "产业动态", "技术创新", "市场投资"]
+    source_text = "\n".join(sources)[:1200]
 
-    for cat in priority:
-        items = categories.get(cat, [])
-        if not items:
-            continue
-        lines.append(f"**━━ {cat}（{len(items)}条）━━**")
-        lines.append("")
-        for i, item in enumerate(items, 1):
-            flag = region_flags.get(item["region"], "")
-            title = item["title"]
-            if len(title) > 75:
-                title = title[:72] + "..."
-            source = item["source"]
-            if len(source) > 12:
-                source = source[:11] + "..."
-            lines.append(f"{i}. {flag} [{title}]({item['url']})")
-            lines.append(f"   *{source}*")
-        lines.append("")
+    content = ai_text + source_text + f"\n\n---\n🤖 AI 分析 | Google News 全球检索 | {today}"
 
-    total_len = sum(len(l) for l in lines)
-    lines.append("---")
-    lines.append("🤖 基于 Google News 全球检索 | 每日 08:00 自动推送")
+    return content
 
-    return "\n".join(lines), total_len
 
 def send_to_feishu(markdown, title):
-    """飞书卡片推送，带重试"""
-    for attempt in range(3):
-        ts = str(int(time_module.time()))
-        sign_key = (ts + "\n" + FEISHU_SECRET).encode("utf-8")
-        sig = base64.b64encode(hmac.new(sign_key, b"", hashlib.sha256).digest()).decode()
-        url = f"{WEBHOOK_URL}?timestamp={ts}&sign={sig}"
-
-        content = markdown[:4800]
-        if len(markdown) > 4800:
-            content += "\n\n> ⚠️ 内容过长已截断"
-
-        payload = {
-            "msg_type": "interactive",
-            "card": {
-                "header": {
-                    "title": {"tag": "plain_text", "content": title},
-                    "template": "blue",
-                },
-                "elements": [{"tag": "markdown", "content": content}],
-            },
-        }
-        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                result = json.loads(resp.read().decode())
-            if result.get("code") == 0:
-                print(f"[OK] Pushed to Feishu (attempt {attempt+1})")
-                return
-            else:
-                print(f"[RETRY {attempt+1}] Feishu error: {result}")
-                time_module.sleep(2)
-        except Exception as e:
-            print(f"[RETRY {attempt+1}] HTTP error: {e}")
-            time_module.sleep(2)
-    raise Exception("Feishu push failed after 3 retries")
-    """飞书卡片推送"""
     ts = str(int(time_module.time()))
     sign_key = (ts + "\n" + FEISHU_SECRET).encode("utf-8")
     sig = base64.b64encode(hmac.new(sign_key, b"", hashlib.sha256).digest()).decode()
     url = f"{WEBHOOK_URL}?timestamp={ts}&sign={sig}"
 
-    # 飞书卡片限制 ~5000 字符
-    content = markdown[:4800]
-    if len(markdown) > 4800:
+    content = markdown[:4900]
+    if len(markdown) > 4900:
         content += "\n\n> ⚠️ 内容过长已截断"
 
     payload = {
         "msg_type": "interactive",
         "card": {
-            "header": {
-                "title": {"tag": "plain_text", "content": title},
-                "template": "blue",
-            },
+            "header": {"title": {"tag": "plain_text", "content": title}, "template": "blue"},
             "elements": [{"tag": "markdown", "content": content}],
         },
     }
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        result = json.loads(resp.read().decode())
-    if result.get("code") != 0:
-        raise Exception(f"Feishu error: {result}")
-    print("[OK] Pushed to Feishu")
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode())
+            if result.get("code") == 0:
+                print(f"[OK] Pushed (attempt {attempt+1})")
+                return
+            print(f"[RETRY {attempt+1}] {result}")
+            time_module.sleep(2)
+        except Exception as e:
+            print(f"[RETRY {attempt+1}] {e}")
+            time_module.sleep(2)
+    raise Exception("Push failed after 3 retries")
 
 
 def main():
-    print("🔋 Fuel Cell Intelligence Daily")
-    print("=" * 50)
-    print("Searching global sources...")
-    results = search_all()
+    print("=" * 60)
+    print("🔋 Fuel Cell Intelligence Daily — AI Powered")
+    print("=" * 60)
 
-    if not results:
-        print("No results, sending empty notice...")
-        send_to_feishu("⚠️ 今日未检索到燃料电池汽车新情报。", "🔋 燃料电池情报日报")
+    # Step 1: 搜索
+    print("\n[1/3] Searching global sources...")
+    articles = search_all()
+    print(f"  Collected: {len(articles)} unique articles")
+
+    if not articles:
+        send_to_feishu("⚠️ 今日未检索到新情报", "🔋 燃料电池情报日报")
         return
 
-    print(f"\nTotal: {len(results)} unique results")
-    print("Classifying...")
-    categories = classify(results)
-    for cat, items in categories.items():
-        print(f"  {cat}: {len(items)} items")
+    # Step 2: AI 分析
+    print("\n[2/3] AI analyzing (GPT-4o-mini)...")
+    try:
+        ai_report = ai_analyze(articles)
+        print(f"  AI report: {len(ai_report)} chars")
+    except Exception as e:
+        print(f"  AI failed: {e}, falling back to list format")
+        ai_report = f"## ⚠️ AI 分析暂不可用\n\n今日检索到 {len(articles)} 篇相关新闻，详见信源列表。"
 
-    print("Generating report...")
-    report, rlen = generate_report(categories)
-    print(f'[INFO] Report: {rlen} chars')
-    title = f'🔋 燃料电池汽车情报日报 — {datetime.now().strftime("%m.%d")}'
-    send_to_feishu(report, title)
-    print("[OK] Done!")
+    # Step 3: 推送
+    print("\n[3/3] Building card & pushing...")
+    content = build_card(ai_report, articles, len(ai_report))
+    print(f"  Card: {len(content)} chars")
+
+    title = f'🔋 燃料电池情报日报 — {datetime.now().strftime("%m.%d")}'
+    send_to_feishu(content, title)
+    print("\n✅ Done!")
 
 
 if __name__ == "__main__":
