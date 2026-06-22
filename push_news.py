@@ -29,7 +29,7 @@ CN_QUERIES = [
     ("氢能+燃料电池+示范城市群+政策",              "zh-CN", "CN"),
 ]
 
-MAX_RESULTS = 20
+MAX_RESULTS = 12
 # ────────────────────────────────────────────────────
 
 
@@ -146,57 +146,47 @@ def classify(results):
 
 
 def generate_report(categories):
-    """生成 Markdown 报告"""
+    """生成精简 Markdown 报告（适配飞书卡片 5000 字符限制）"""
     today = datetime.now().strftime("%Y-%m-%d")
     total = sum(len(v) for v in categories.values())
 
     lines = [
-        f"# 🔋 燃料电池汽车产业情报日报",
-        f"",
-        f"📅 **{today}**  |  📰 **{total} 条情报**  |  🌍 **全球信源**",
-        f"",
-        "---",
+        "## 🔋 燃料电池汽车产业情报日报",
+        "",
+        f"📅 {today}  |  📰 {total} 条  |  🌍 全球信源",
         "",
     ]
 
-    # 按重要性排序
+    region_flags = {
+        "CN": "🇨🇳", "US": "🇺🇸", "GB": "🇬🇧", "JP": "🇯🇵",
+        "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸",
+    }
+
     priority = ["政策法规", "国际合作", "产业动态", "技术创新", "市场投资"]
 
     for cat in priority:
         items = categories.get(cat, [])
         if not items:
             continue
-        region_flags = {
-            "CN": "🇨🇳", "US": "🇺🇸", "GB": "🇬🇧", "JP": "🇯🇵",
-            "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸",
-        }
-        lines.append(f"## 📌 {cat}（{len(items)}条）")
+        lines.append(f"**━━ {cat}（{len(items)}条）━━**")
         lines.append("")
         for i, item in enumerate(items, 1):
-            flag = region_flags.get(item["region"], "🌐")
-            # 提取真实域名
-            source_display = item["source"]
-            if len(source_display) > 15:
-                source_display = source_display[:15] + "…"
-            lines.append(f"**{i}. {item['title']}**")
-            lines.append(f"")
-            lines.append(f"📅 {item['date'][:22]}  |  {flag} [{source_display}]({item['url']})")
-            lines.append("")
-        lines.append("---")
+            flag = region_flags.get(item["region"], "")
+            title = item["title"]
+            if len(title) > 75:
+                title = title[:72] + "..."
+            source = item["source"]
+            if len(source) > 12:
+                source = source[:11] + "..."
+            lines.append(f"{i}. {flag} [{title}]({item['url']})")
+            lines.append(f"   *{source}*")
         lines.append("")
 
-    lines += [
-        "",
-        "> 💡 **关于本报**",
-        "> 基于 Google News 全球信源自动检索生成，覆盖中、日、韩、美、欧等主要市场。",
-        "> 搜索范围包含各国政府公告、行业媒体、研究机构发布的最新资讯。",
-        "> 仅供研究参考，不构成投资建议。",
-        "",
-        f"> 🤖 由 GitHub Actions 自动生成推送 | {today}",
-    ]
+    total_len = sum(len(l) for l in lines)
+    lines.append("---")
+    lines.append("🤖 基于 Google News 全球检索 | 每日 08:00 自动推送")
 
-    return "\n".join(lines)
-
+    return "\n".join(lines), total_len
 
 def send_to_feishu(markdown, title):
     """飞书卡片推送，带重试"""
@@ -283,7 +273,8 @@ def main():
         print(f"  {cat}: {len(items)} items")
 
     print("Generating report...")
-    report = generate_report(categories)
+    report, rlen = generate_report(categories)
+    print(f'[INFO] Report: {rlen} chars')
     title = f'🔋 燃料电池汽车情报日报 — {datetime.now().strftime("%m.%d")}'
     send_to_feishu(report, title)
     print("[OK] Done!")
