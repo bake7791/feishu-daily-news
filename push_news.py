@@ -146,25 +146,27 @@ def build_card(ai_report, articles, total_chars):
 
 
 def send_to_feishu(markdown, title):
-    ts = str(int(time_module.time()))
-    sign_key = (ts + "\n" + FEISHU_SECRET).encode("utf-8")
-    sig = base64.b64encode(hmac.new(sign_key, b"", hashlib.sha256).digest()).decode()
-    url = f"{WEBHOOK_URL}?timestamp={ts}&sign={sig}"
-
-    content = markdown[:4900]
+    """飞书卡片推送"""
+    content_md = markdown[:4900]
     if len(markdown) > 4900:
-        content += "\n\n> ⚠️ 内容过长已截断"
+        content_md += "\n\n> ⚠️ 内容过长已截断"
 
     payload = {
         "msg_type": "interactive",
         "card": {
             "header": {"title": {"tag": "plain_text", "content": title}, "template": "blue"},
-            "elements": [{"tag": "markdown", "content": content}],
+            "elements": [{"tag": "markdown", "content": content_md}],
         },
     }
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
+
     for attempt in range(3):
+        ts = str(int(time_module.time()))
+        sign_key = (ts + "\n" + FEISHU_SECRET).encode("utf-8")
+        sig = base64.b64encode(hmac.new(sign_key, b"", hashlib.sha256).digest()).decode()
+        url = f"{WEBHOOK_URL}?timestamp={ts}&sign={sig}"
+
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 result = json.loads(resp.read().decode())
@@ -177,7 +179,6 @@ def send_to_feishu(markdown, title):
             print(f"[RETRY {attempt+1}] {e}")
             time_module.sleep(2)
     raise Exception("Push failed after 3 retries")
-
 
 def main():
     print("=" * 60)
