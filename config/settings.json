@@ -39,5 +39,6 @@
       "KR"
     ],
     "其他": []
-  }
+  },
+  "_comment": "For pubilish_v2.py: set FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_CHAT_ID in GitHub Actions secrets"
 }
