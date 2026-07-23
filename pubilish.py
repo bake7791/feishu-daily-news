@@ -479,7 +479,9 @@ def send_card(title, content, color="blue"):
             ).digest()
             sign = base64.b64encode(hmac_code).decode("utf-8")
 
-            url = f"{WEBHOOK_URL}&timestamp={ts}&sign={sign}"
+            # 修正：飞书 webhook 地址不带 query string，必须用 ? 起头
+            sep = "&" if "?" in WEBHOOK_URL else "?"
+            url = f"{WEBHOOK_URL}{sep}timestamp={ts}&sign={sign}"
             req = urllib.request.Request(
                 url, data=data,
                 headers={"Content-Type": "application/json; charset=utf-8"},
