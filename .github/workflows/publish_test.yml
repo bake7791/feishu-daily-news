@@ -16,5 +16,4 @@ jobs:
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          DRY_RUN: "true"
         run: python pubilish_v2.py
