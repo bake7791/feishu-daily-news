@@ -96,6 +96,7 @@ def search_all():
     seen = set(); all_results = []
     for q in SRC["queries"]:
         try:
+            time_module.sleep(0.5)  # avoid rate limiting
             results = search_google_news(q["query"], q["hl"], q["gl"])
             print(f"  [{q['gl']}] -> {len(results)} results")
             for r in results:
@@ -278,6 +279,7 @@ def build_source_cards(articles, today):
             if current_len + len(line) > 4500: flush()
             current += line; current_len += len(line)
     flush()
+    print(f"  Source cards built: {len(cards)}")
     return cards
 
 def push(title, content, color, dry):
