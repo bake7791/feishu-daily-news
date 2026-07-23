@@ -1,19 +1,117 @@
 {
-  "max_articles": 25,
+  "max_articles": 35,
   "queries": [
-    {"query": "fuel cell vehicle policy hydrogen regulation subsidy 2026", "hl": "en-US", "gl": "US"},
-    {"query": "hydrogen fuel cell FCEV industry strategy investment", "hl": "en-GB", "gl": "GB"},
-    {"query": "Brennstoffzelle Wasserstoff Fahrzeug EU Politik", "hl": "de-DE", "gl": "DE"},
-    {"query": "pile combustible hydrogene vehicule France", "hl": "fr-FR", "gl": "FR"},
-    {"query": "fuel cell vehicle Toyota Honda Hyundai Japan Korea", "hl": "en-US", "gl": "US"},
-    {"query": "fuel cell truck bus commercial vehicle deployment China hydrogen", "hl": "zh-CN", "gl": "CN"},
-    {"query": "fuel cell stack membrane catalyst breakthrough technology", "hl": "en-US", "gl": "US"},
-    {"query": "hydrogen price refueling station green hydrogen cost 2026", "hl": "en-US", "gl": "US"},
-    {"query": "\u52a0\u6c22\u7ad9 \u6c22\u6c14\u4ef7\u683c \u7eff\u6c22 \u793a\u8303\u9879\u76ee 2026", "hl": "zh-CN", "gl": "CN"}
+    {
+      "query": "site:miit.gov.cn ?? ???? ?????",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "site:ndrc.gov.cn ?? ??? ?????",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "site:caixin.com ?? ????",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "site:sinohytec.com",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "site:ballard.com fuel cell",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "fuel cell vehicle policy hydrogen regulation subsidy 2026",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "hydrogen fuel cell FCEV industry strategy investment",
+      "hl": "en-GB",
+      "gl": "GB"
+    },
+    {
+      "query": "Brennstoffzelle Wasserstoff Fahrzeug EU Politik",
+      "hl": "de-DE",
+      "gl": "DE"
+    },
+    {
+      "query": "fuel cell vehicle Toyota Honda Hyundai Japan Korea",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "hydrogen fuel cell export Europe certification market access",
+      "hl": "en-GB",
+      "gl": "GB"
+    },
+    {
+      "query": "fuel cell truck bus forklift port equipment stationary power",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "?? ?? ?? ?? ???? ???? ??",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "fuel cell stack membrane electrode bipolar plate breakthrough",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "hydrogen price refueling station green hydrogen cost 2026",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "??? ???? ?? ???? 2026",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "fuel cell PowerCell Ballard Plug Power order contract",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "???? ?? ??? ???? ????",
+      "hl": "zh-CN",
+      "gl": "CN"
+    },
+    {
+      "query": "green hydrogen investment funding M&A 2026",
+      "hl": "en-US",
+      "gl": "US"
+    },
+    {
+      "query": "?? ?? ?? ??? 2026",
+      "hl": "zh-CN",
+      "gl": "CN"
+    }
   ],
   "feeds": [
-    {"url": "https://www.hydrogenfuelnews.com/feed/", "region": "US", "name": "Hydrogen Fuel News"},
-  {"url": "https://www.h2-view.com/feed/", "region": "GB", "name": "H2 View"},
-  {"url": "https://fuelcellsworks.com/feed/", "region": "US", "name": "Fuel Cells Works"}
+    {
+      "url": "https://www.globalhydrogenreview.com/rss/hydrogen.xml",
+      "region": "GB",
+      "name": "Global Hydrogen Review"
+    },
+    {
+      "url": "https://stratechery.com/feed/",
+      "region": "US",
+      "name": "Stratechery"
+    },
+    {
+      "url": "https://fs.blog/feed/",
+      "region": "US",
+      "name": "Farnam Street"
+    }
   ]
 }
