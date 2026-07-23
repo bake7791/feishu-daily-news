@@ -1,18 +1,18 @@
 {
-  "max_articles": 25,
+  "max_articles": 35,
   "queries": [
     {
-      "query": "site:miit.gov.cn ?? ???? ?????",
+      "query": "site:miit.gov.cn 氢能 燃料电池 新能源汽车",
       "hl": "zh-CN",
       "gl": "CN"
     },
     {
-      "query": "site:ndrc.gov.cn ?? ??? ?????",
+      "query": "site:ndrc.gov.cn 氢能 新能源 示范城市群",
       "hl": "zh-CN",
       "gl": "CN"
     },
     {
-      "query": "site:caixin.com ?? ????",
+      "query": "site:caixin.com 氢能 燃料电池",
       "hl": "zh-CN",
       "gl": "CN"
     },
@@ -57,7 +57,7 @@
       "gl": "US"
     },
     {
-      "query": "?? ?? ?? ?? ???? ???? ??",
+      "query": "氢能 重卡 客车 叉车 港口机械 燃料电池 采购",
       "hl": "zh-CN",
       "gl": "CN"
     },
@@ -72,7 +72,7 @@
       "gl": "US"
     },
     {
-      "query": "??? ???? ?? ???? 2026",
+      "query": "加氢站 氢气价格 绿氢 示范项目 2026",
       "hl": "zh-CN",
       "gl": "CN"
     },
@@ -82,7 +82,7 @@
       "gl": "US"
     },
     {
-      "query": "???? ?? ??? ???? ????",
+      "query": "未势能源 捷氢 亿华通 锋源氢能 燃料电池",
       "hl": "zh-CN",
       "gl": "CN"
     },
@@ -92,7 +92,7 @@
       "gl": "US"
     },
     {
-      "query": "?? ?? ?? ??? 2026",
+      "query": "氢能 融资 投资 产业链 2026",
       "hl": "zh-CN",
       "gl": "CN"
     }
