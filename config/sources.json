@@ -1,0 +1,15 @@
+{
+  "max_articles": 25,
+  "queries": [
+    {"query": "fuel cell vehicle policy hydrogen regulation subsidy 2026", "hl": "en-US", "gl": "US"},
+    {"query": "hydrogen fuel cell FCEV industry strategy investment", "hl": "en-GB", "gl": "GB"},
+    {"query": "Brennstoffzelle Wasserstoff Fahrzeug EU Politik", "hl": "de-DE", "gl": "DE"},
+    {"query": "pile combustible hydrogene vehicule France", "hl": "fr-FR", "gl": "FR"},
+    {"query": "fuel cell vehicle Toyota Honda Hyundai Japan Korea", "hl": "en-US", "gl": "US"},
+    {"query": "fuel cell truck bus commercial vehicle deployment China hydrogen", "hl": "zh-CN", "gl": "CN"},
+    {"query": "fuel cell stack membrane catalyst breakthrough technology", "hl": "en-US", "gl": "US"},
+    {"query": "hydrogen price refueling station green hydrogen cost 2026", "hl": "en-US", "gl": "US"},
+    {"query": "\u52a0\u6c22\u7ad9 \u6c22\u6c14\u4ef7\u683c \u7eff\u6c22 \u793a\u8303\u9879\u76ee 2026", "hl": "zh-CN", "gl": "CN"}
+  ],
+  "feeds": []
+}
