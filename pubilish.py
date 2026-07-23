@@ -70,6 +70,28 @@ def search_google_news(query, hl, gl, max_results=50):
             break
     return results
 
+
+def search_direct_rss(rss_url, region, source_name, max_results=20):
+    """Fetch articles directly from a site RSS feed."""
+    xml_data = http_get(rss_url, {"User-Agent": "Mozilla/5.0"})
+    root = ET.fromstring(xml_data)
+    results = []
+    for item in root.findall(".//item"):
+        t = item.find("title"); l = item.find("link"); p = item.find("pubDate")
+        title = t.text.strip() if t is not None and t.text else ""
+        link = l.text if l is not None else ""
+        pubdate = p.text if p is not None else ""
+        skip = ["stock", "share price", "sponsored", "advertisement"]
+        if not title or any(w in title.lower() for w in skip):
+            continue
+        results.append({
+            "title": title, "url": link, "source": source_name,
+            "date": pubdate, "region": region,
+        })
+        if len(results) >= max_results:
+            break
+    return results
+
 def search_all():
     seen = set(); all_results = []
     for q in SRC["queries"]:
@@ -82,6 +104,18 @@ def search_all():
                     seen.add(key); all_results.append(r)
         except Exception as e:
             print(f"  [WARN] {q['gl']}: {e}")
+    # Direct RSS feeds
+    for feed in SRC.get("feeds", []):
+        try:
+            results = search_direct_rss(feed["url"], feed["region"], feed.get("name", "RSS"))
+            print(f"  [RSS:{feed.get('name')}] -> {len(results)} results")
+            for r in results:
+                key = r["title"][:80]
+                if key not in seen:
+                    seen.add(key); all_results.append(r)
+        except Exception as e:
+            print(f"  [WARN] RSS {feed.get('name')}: {e}")
+
     def pd(r):
         try: return datetime.strptime(r["date"], "%a, %d %b %Y %H:%M:%S %Z")
         except: return datetime.min
