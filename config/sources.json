@@ -11,5 +11,9 @@
     {"query": "hydrogen price refueling station green hydrogen cost 2026", "hl": "en-US", "gl": "US"},
     {"query": "\u52a0\u6c22\u7ad9 \u6c22\u6c14\u4ef7\u683c \u7eff\u6c22 \u793a\u8303\u9879\u76ee 2026", "hl": "zh-CN", "gl": "CN"}
   ],
-  "feeds": []
+  "feeds": [
+    {"url": "https://www.hydrogenfuelnews.com/feed/", "region": "US", "name": "Hydrogen Fuel News"},
+  {"url": "https://www.h2-view.com/feed/", "region": "GB", "name": "H2 View"},
+  {"url": "https://fuelcellsworks.com/feed/", "region": "US", "name": "Fuel Cells Works"}
+  ]
 }
