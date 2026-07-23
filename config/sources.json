@@ -1,5 +1,5 @@
 {
-  "max_articles": 35,
+  "max_articles": 25,
   "queries": [
     {
       "query": "site:miit.gov.cn ?? ???? ?????",
